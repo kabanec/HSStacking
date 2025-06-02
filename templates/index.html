@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3CE Trade Data Schedule</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total-row { font-weight: bold; background-color: #e0e0e0; }
+        pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; overflow-x: auto; margin-top: 20px; }
+        button { padding: 10px; cursor: pointer; }
+        #error { color: red; display: none; margin-top: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { margin-right: 10px; }
+        input { padding: 5px; margin-right: 10px; }
+        .hs-section { margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <h1>3CE Trade Data Schedule</h1>
+    <div class="form-group">
+        <label for="hsCode">HS Code:</label>
+        <input type="text" id="hsCode" value="8501512020" placeholder="Enter HS Code">
+        <label for="origin">Origin:</label>
+        <input type="text" id="origin" value="CN" placeholder="Enter Origin (e.g., CN)">
+        <label for="destination">Destination:</label>
+        <input type="text" id="destination" value="US" placeholder="Enter Destination (e.g., US)">
+        <button onclick="fetchVerifications()">Submit</button>
+    </div>
+    <p id="error"></p>
+    <div id="stackableTables"></div>
+    <h2>Raw API Response (Debug)</h2>
+    <pre id="responseOutput">No response yet. Submit HS Code, Origin, and Destination to see the API response.</pre>
+
+    <script>
+        // Parse duty rate to extract percentage(s)
+        function parseDutyRate(rate, generalRate) {
+            if (!rate || rate === 'N/A') return 0;
+            let total = 0;
+            // Match percentages (e.g., "25%", "10%")
+            const percentMatches = rate.match(/(\d+(\.\d+)?)%/g) || [];
+            percentMatches.forEach(match => {
+                total += parseFloat(match);
+            });
+            // Handle "General rate"
+            if (rate.includes('General rate') && generalRate) {
+                total += parseFloat(generalRate.replace('%', '')) || 0;
+            }
+            return total;
+        }
+
+        async function fetchVerifications() {
+            const errorDiv = document.getElementById('error');
+            const tablesContainer = document.getElementById('stackableTables');
+            const responseOutput = document.getElementById('responseOutput');
+            const hsCode = document.getElementById('hsCode').value.trim();
+            const origin = document.getElementById('origin').value.trim().toUpperCase();
+            const destination = document.getElementById('destination').value.trim().toUpperCase();
+            errorDiv.style.display = 'none';
+            tablesContainer.innerHTML = '';
+            responseOutput.textContent = 'Loading...';
+
+            if (!hsCode || !origin || !destination) {
+                errorDiv.textContent = 'Error: HS Code, Origin, and Destination are required';
+                errorDiv.style.display = 'block';
+                responseOutput.textContent = 'No response yet.';
+                console.error('Missing required fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('/fetch-verifications', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hsCode, origin, destination })
+                });
+                const result = await response.json();
+                console.log('API Response:', result);
+
+                if (result.success) {
+                    // Display raw JSON response
+                    responseOutput.textContent = JSON.stringify(result.data, null, 2);
+                    // Create a table for each HS code's stackable codes
+                    (result.stackableCodeSets || []).forEach(set => {
+                        const section = document.createElement('div');
+                        section.className = 'hs-section';
+                        section.innerHTML = `<h3>Stackable HS Codes for ${set.primaryHTS}</h3>`;
+                        const table = document.createElement('table');
+                        table.innerHTML = `
+                            <thead>
+                                <tr>
+                                    <th>HS Code</th>
+                                    <th>Description</th>
+                                    <th>Duty Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        `;
+                        const tbody = table.querySelector('tbody');
+                        let totalRate = 0;
+                        const generalRate = set.generalRate || '0';
+
+                        (set.stackableCodes || []).forEach(item => {
+                            const rateDisplay = item.dutyRate && item.dutyRate !== 'N/A' ? item.dutyRate : '0%';
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${item.code}</td>
+                                <td>${item.desc || 'N/A'}</td>
+                                <td>${rateDisplay}</td>
+                            `;
+                            tbody.appendChild(row);
+                            // Calculate total rate
+                            totalRate += parseDutyRate(item.dutyRate, generalRate);
+                        });
+
+                        // Add total calculated rate row
+                        const totalRow = document.createElement('tr');
+                        totalRow.className = 'total-row';
+                        totalRow.innerHTML = `
+                            <td colspan="2">Total Calculated Rate</td>
+                            <td>${totalRate.toFixed(2)}%</td>
+                        `;
+                        tbody.appendChild(totalRow);
+
+                        section.appendChild(table);
+                        tablesContainer.appendChild(section);
+                    });
+                } else {
+                    errorDiv.textContent = `Error: ${result.error}`;
+                    errorDiv.style.display = 'block';
+                    responseOutput.textContent = JSON.stringify(result, null, 2);
+                    console.error('API Error:', result.error);
+                }
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                errorDiv.style.display = 'block';
+                responseOutput.textContent = 'Error occurred. See error message above.';
+                console.error('Fetch Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
