@@ -1,9 +1,6 @@
 Flask
 requests
 python-dotenv
-gunicorn
-pandas
-openpyxl
-werkzeug
 requests-retry
+gunicorn
 urllib3
