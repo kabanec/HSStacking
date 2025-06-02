@@ -1,0 +1,18 @@
+body { font-family: Arial, sans-serif; margin: 20px; }
+.form-group { margin-bottom: 15px; }
+label { margin-right: 10px; }
+input { padding: 5px; margin-right: 10px; }
+button { padding: 10px; cursor: pointer; margin-right: 10px; }
+#error { color: red; display: none; margin-top: 10px; }
+pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; overflow-x: auto; }
+.disclaimer { font-size: 0.9em; margin-top: 20px; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+th { background-color: #f2f2f2; }
+.total-row { font-weight: bold; background-color: #e0e0e0; }
+.hs-section { margin-bottom: 30px; }
+.button-container { margin-top: 30px; text-align: center; }
+.button-container button { padding: 15px 30px; margin: 10px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+.button-container button:hover { background-color: #0056b3; }
+.filter-group { margin-bottom: 20px; }
+select { padding: 5px; margin-right: 10px; }
