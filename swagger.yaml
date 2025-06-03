@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: HS Stacking API
+  description: API for generating stackable HS codes for ACE submission
+  version: 1.0.0
+servers:
+  - url: https://pga-flags.onrender.com
+    description: Production server
+paths:
+  /api/stackable-hs:
+    post:
+      summary: Generate stackable HS codes
+      description: Returns stackable HS codes based on HS code, origin, and destination
+      security:
+        - basicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hsCode
+                - origin
+                - destination
+              properties:
+                hsCode:
+                  type: string
+                  description: Full or partial HS code (4-10 digits, optionally .XX)
+                  example: "8501512020"
+                origin:
+                  type: string
+                  description: 2-letter ISO country code for origin
+                  example: "CN"
+                destination:
+                  type: string
+                  description: 2-letter ISO country code for destination
+                  example: "US"
+      responses:
+        '200':
+          description: Successful response with stackable HS codes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    description: Raw API response from 3CE
+                  stackableCodeSets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        primaryHTS:
+                          type: string
+                          example: "8501512020"
+                        stackableCodes:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              code:
+                                type: string
+                                example: "9903.88.01"
+                              desc:
+                                type: string
+                                example: "Additional Duty"
+                              dutyRate:
+                                type: string
+                                example: "25%"
+                        generalRate:
+                          type: string
+                          example: "2.5%"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Missing required fields: hsCode, origin, and destination are required"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '404':
+          description: No HS codes found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "No full HS codes found in response"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Network error: ..."
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
